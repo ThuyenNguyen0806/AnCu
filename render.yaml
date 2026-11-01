@@ -1,0 +1,50 @@
+# Upload this file together with pom.xml and Dockerfile at the repository root.
+services:
+  - type: web
+    name: ancu-web-demo
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: ancu-db-demo
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: ancu-db-demo
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: ancu-db-demo
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: ancu-db-demo
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: ancu-db-demo
+          property: password
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SERVER_ADDRESS
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: TZ
+        value: Asia/Ho_Chi_Minh
+
+databases:
+  - name: ancu-db-demo
+    plan: free
+    region: singapore
+    databaseName: ancu
+    user: ancu_app
+    postgresMajorVersion: "17"
+    ipAllowList: []
