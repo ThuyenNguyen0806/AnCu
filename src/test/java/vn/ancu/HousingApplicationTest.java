@@ -113,4 +113,48 @@ class HousingApplicationTest {
                 .andExpect(org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated())
                 .andExpect(redirectedUrl("/login?error"));
     }
+
+    @Test void publicPageShowsHousesWithoutCustomerData() throws Exception {
+        mvc.perform(get("/")).andExpect(status().isOk()).andExpect(view().name("public-home"))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Nhà kiểm thử")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Đăng nhập quản trị")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("demo@example.com"))));
+        mvc.perform(get("/api/data")).andExpect(status().is3xxRedirection());
+    }
+    @Test @WithMockUser(roles="USER") void ordinaryUserCannotAccessAdmin() throws Exception {
+        mvc.perform(get("/api/data")).andExpect(status().isForbidden());
+        mvc.perform(get("/housing/dashboard")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/houses").with(csrf())).andExpect(status().isForbidden());
+    }
+    @Test void anonymousRequestCreatesPendingRegistration() throws Exception {
+        mvc.perform(post("/public/requests").with(csrf()).param("houseId",houseId.toString())
+            .param("name","Khách trực tuyến").param("cccd","000000000009")
+            .param("phone","0900000009").param("email","visitor@example.com")
+            .param("kind","PURCHASE").param("status","Đã duyệt").param("customerId",customerId.toString()))
+            .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("message"));
+        assertEquals("Chờ duyệt", registrations.findAll().getFirst().getStatus());
+        assertNotEquals(customerId, registrations.findAll().getFirst().getCustomerId());
+        assertEquals("Sẵn bán", houses.findById(houseId).orElseThrow().getStatus());
+    }
+    @Test void visitorCanBookAppointmentAndInvalidDateDoesNotCreateCustomer() throws Exception {
+        mvc.perform(post("/public/requests").with(csrf()).param("houseId",houseId.toString())
+            .param("name","Khách đặt lịch").param("cccd","000000000008")
+            .param("phone","0900000008").param("email","visit@example.com")
+            .param("kind","VISIT").param("date",LocalDate.now().plusDays(2).toString()).param("time","10:00"))
+            .andExpect(flash().attributeExists("message"));
+        assertEquals("Chờ xác nhận",appointments.findAll().getFirst().getStatus());
+        long count=customers.count();
+        mvc.perform(post("/public/requests").with(csrf()).param("houseId",houseId.toString())
+            .param("name","Khách lỗi").param("cccd","000000000007")
+            .param("phone","0900000007").param("email","invalid@example.com")
+            .param("kind","VISIT").param("date",LocalDate.now().minusDays(2).toString()).param("time","10:00"))
+            .andExpect(flash().attributeExists("error"));
+        assertEquals(count,customers.count());
+    }
+    @Test void publicPostRequiresCsrfAndRejectsInvalidInput() throws Exception {
+        mvc.perform(post("/public/requests")).andExpect(status().isForbidden());
+        mvc.perform(post("/public/requests").with(csrf()).param("kind","APPROVE"))
+            .andExpect(flash().attributeExists("error"));
+        assertEquals(0,registrations.count());
+    }
 }

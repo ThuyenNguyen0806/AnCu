@@ -17,7 +17,11 @@ public class PageController {
     public PageController(HousingService service) { this.service = service; }
 
     @GetMapping({"/", "/app"})
-    public String home() { return "redirect:/housing/dashboard"; }
+    public String home(Model model) {
+        model.addAttribute("houses", service.publicHouses());
+        model.addAttribute("requestForm", new VisitorRequest(null, "", "", "", "", "PURCHASE", null, null, ""));
+        return "public-home";
+    }
 
     @GetMapping("/login")
     public String login() { return "login"; }

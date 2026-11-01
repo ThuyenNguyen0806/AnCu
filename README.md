@@ -96,3 +96,13 @@ Hoặc trong terminal đã khai báo biến môi trường: `mvn clean verify` r
 Phạm vi là ứng dụng quản trị; khách hàng là hồ sơ liên hệ, chưa có tài khoản tự đăng nhập. Chưa có thanh toán hoặc hợp đồng mua bán.
 
 Xem KIEM_TRA.md để biết kết quả kiểm thử và giới hạn xác minh. Bản ZIP này chưa được đẩy lên GitHub hoặc triển khai thành công trên tài khoản Render của bạn.
+
+
+## Trang khách và quản trị
+
+- `/`: trang xem nhà công khai, có ảnh, chi tiết, tìm kiếm, lọc loại và sắp xếp giá.
+- Khách gửi đăng ký mua / đặt lịch ngay trên trang chủ, không cần tài khoản. Điền tên, CCCD, điện thoại, email; lịch xem cần ngày giờ tương lai.
+- Yêu cầu mới luôn chờ duyệt / chờ xác nhận. Chỉ admin được xem hồ sơ khách và xử lý yêu cầu.
+- Góc trên có Đăng nhập quản trị → `/login`; đăng nhập bằng `ADMIN_USER` và `ADMIN_PASSWORD` đã đặt trên Render.
+- `/housing/dashboard`, `/housing/**` và `/api/**` chỉ dành cho quyền ADMIN. Dữ liệu cá nhân không gửi xuống trang công khai.
+- Giữ nguyên cấu trúc PostgreSQL và cấu hình Render; không cần tạo lại database.

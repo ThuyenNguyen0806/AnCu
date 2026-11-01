@@ -49,6 +49,41 @@ public class HousingService {
                 "registrations", registrations.findAll(), "appointments", appointments.findAll());
     }
 
+    @Transactional(readOnly = true)
+    public List<House> publicHouses() {
+        return ((List<House>) data().get("houses"));
+    }
+
+    @Transactional
+    public void visitorRequest(VisitorRequest input) {
+        var house = lockHouse(input.houseId());
+        if (!house.getStatus().equals("Sẵn bán"))
+            throw new IllegalArgumentException("Nhà hiện không nhận yêu cầu mới. Vui lòng chọn nhà khác.");
+        if (input.kind().equals("VISIT") && (input.date() == null || input.time() == null))
+            throw new IllegalArgumentException("Vui lòng chọn ngày và giờ xem nhà.");
+        if (input.kind().equals("VISIT") && LocalDateTime.of(input.date(), input.time()).isBefore(LocalDateTime.now()))
+            throw new IllegalArgumentException("Ngày giờ hẹn phải ở tương lai.");
+        var existing = customers.findAll().stream().filter(c -> c.getCccd().equals(input.cccd())).findFirst();
+        NguoiDung customer;
+        if (existing.isPresent()) {
+            customer = existing.get();
+            if (!customer.getName().equals(input.name().trim()) || !customer.getPhone().equals(input.phone())
+                    || !customer.getEmail().equalsIgnoreCase(input.email().trim()))
+                throw new IllegalArgumentException("Không thể tiếp nhận thông tin này. Vui lòng liên hệ quản trị viên.");
+        } else {
+            customer = new NguoiDung();
+            customer.setName(input.name().trim()); customer.setCccd(input.cccd());
+            customer.setPhone(input.phone()); customer.setEmail(input.email().trim());
+            customers.saveAndFlush(customer);
+        }
+        if (input.kind().equals("PURCHASE")) {
+            registration(new Registration(null, customer.getId(), house.getId(), LocalDate.now(), "Chờ duyệt", input.note()));
+        } else {
+            appointment(new Appointment(null, customer.getId(), house.getId(), input.date(), input.time(),
+                    "Chờ xác nhận", input.note() == null || input.note().isBlank() ? "Khách đặt lịch xem nhà" : input.note()));
+        }
+    }
+
     private NhaO lockHouse(Long id) {
         return houses.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhà ở."));

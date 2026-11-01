@@ -32,10 +32,11 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain security(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/style.css", "/app.js", "/images/**", "/login", "/error", "/health").permitAll()
-                    .anyRequest().authenticated())
+                    .requestMatchers("/", "/app", "/public/**", "/public.css", "/style.css", "/app.js", "/images/**", "/login", "/error", "/health").permitAll()
+                    .anyRequest().hasRole("ADMIN"))
                 .formLogin(login -> login.loginPage("/login")
                     .defaultSuccessUrl("/housing/dashboard", true).permitAll())
+                .logout(logout -> logout.logoutSuccessUrl("/"))
                 .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
         return http.build();
     }
